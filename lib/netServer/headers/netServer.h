@@ -124,7 +124,7 @@ private:
 
 
 	void sendPost(stSession* session);
-	void recvPost(stSession* session);
+	void recvPost(stSession* session, bool ignoreReleased = false);
 
 	static unsigned __stdcall completionStatusFunc(void* args);
 	static unsigned __stdcall acceptFunc(void* args);
@@ -132,7 +132,7 @@ private:
 
 	void checkCompletePacket(stSession* session, CRingBuffer* recvBuffer);
 
-	void release(stSession* session);
+	void release(unsigned __int64 sessionID);
 
 	struct stSession{
 		
@@ -161,12 +161,14 @@ private:
 		// send를 1회로 제한하기 위한 플래그
 		bool _isSent;
 		
-		// 총 16비트로 릴리즈 플래그 변화와 ioCnt가 0인지 동시에 체크하기 위함
-		alignas(32) unsigned short _ioCnt;
+		// 총 4바이트로 릴리즈 플래그 변화와 ioCnt가 0인지 동시에 체크하기 위함
+		alignas(32) bool _released;
 		private: unsigned char _dummy;
-		public: bool _released;
+		public: unsigned short _ioCnt;
 
 		bool _callDisconnect;
+
+
 
 	};
 };

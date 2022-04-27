@@ -68,6 +68,8 @@ void CChatServer::onClientLeave(unsigned __int64 sessionID) {
 
 void CChatServer::onRecv(unsigned __int64 sessionID, CPacketPointer packet) {
 
+	packet.incRef();
+
 	WORD type;
 	packet >> type;
 
@@ -117,6 +119,7 @@ unsigned __stdcall CChatServer::updateFunc(void* args) {
 				unsigned __int64 sessionID = job._sessionID;
 
 				user->_sessionID = sessionID;
+				user->_sector = nullptr;
 
 				userTable->insert(std::pair<unsigned __int64, stUser*>(sessionID, user));
 			}
@@ -125,7 +128,17 @@ unsigned __stdcall CChatServer::updateFunc(void* args) {
 			case JOB::USER_LEAVE: {
 
 				unsigned __int64 sessionID = job._sessionID;
-				userTable->erase(sessionID);
+
+				auto userIter = userTable->find(sessionID);
+				stUser* user = userIter->second;
+
+				if (user->_sector != nullptr) {
+					user->_sector->_userList.remove(user);
+				}
+
+				userTable->erase(userIter);
+
+				delete user;
 			}
 			break;
 
@@ -140,17 +153,17 @@ unsigned __stdcall CChatServer::updateFunc(void* args) {
 
 				packet.popData(sizeof(WCHAR) * ID_LEN, (unsigned char*)user->_id);
 				packet.popData(sizeof(WCHAR) * NICKNAME_LEN, (unsigned char*)user->_nickName);
-
+	
 				user->_sector = nullptr;
-				//sectorArr[0][0]._userList.push_back(user);
 
 				CPacketPtr_Net resultPacket;
 				resultPacket << (WORD)JOB::RES_LOGIN;
 				resultPacket << (BYTE)1;
 				resultPacket << user->_accountNo;
 
-
 				server->sendPacket(sessionID, resultPacket);
+				resultPacket.decRef();
+				packet.decRef();
 
 			}
 			break;
@@ -163,8 +176,10 @@ unsigned __stdcall CChatServer::updateFunc(void* args) {
 				WORD sectorX;
 				WORD sectorY;
 
+				__int64 accountNo;
+
 				CPacketPointer packet = job._packet;
-				packet >> sectorX >> sectorY;
+				packet >> accountNo >> sectorX >> sectorY;
 
 				if (user->_sector != nullptr) {
 					user->_sector->_userList.remove(user);
@@ -180,6 +195,9 @@ unsigned __stdcall CChatServer::updateFunc(void* args) {
 				resultPacket << sectorX << sectorY;
 
 				server->sendPacket(sessionID, resultPacket);
+				resultPacket.decRef();
+				packet.decRef();
+
 
 			}
 			break;
@@ -202,15 +220,18 @@ unsigned __stdcall CChatServer::updateFunc(void* args) {
 				packet >> msgLen;
 
 				CPacketPtr_Net resultPacket;
+
 				resultPacket << (WORD)JOB::RES_SEND_CHAT;
 				resultPacket << user->_accountNo;
 				resultPacket.putData(sizeof(WCHAR) * ID_LEN, (unsigned char*)user->_id);
 				resultPacket.putData(sizeof(WCHAR) * NICKNAME_LEN, (unsigned char*)user->_nickName);
 				resultPacket << msgLen;
-				resultPacket.putData(sizeof(WCHAR) * msgLen, (unsigned char*)packet.getFrontPtr());
+				resultPacket.putData(msgLen, (unsigned char*)packet.getFrontPtr());
+
 
 				stSector* userSector = user->_sector;
 				std::vector<stSector*>* sendRange = &userSector->_sendRange;
+				
 				for (auto sectorIter = sendRange->begin(); sectorIter != sendRange->end(); ++sectorIter) {
 
 					std::list<stUser*>* otherUserList = &(*sectorIter)->_userList;
@@ -219,6 +240,9 @@ unsigned __stdcall CChatServer::updateFunc(void* args) {
 					}
 
 				}
+
+				resultPacket.decRef();
+				packet.decRef();
 
 			}
 			break;

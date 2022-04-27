@@ -84,4 +84,5 @@ struct RES_CHAT {
 	WCHAR _id[ID_LEN];
 	WCHAR nickName[NICKNAME_LEN];
 	WORD _msgLen;
+	//WCHAR msg[msgLen / 2]
 };

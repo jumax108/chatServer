@@ -18,8 +18,6 @@ public:
 
 private:
 
-	bool* _incoded;
-
 	#if defined(PACKET_PTR_LAN_DEBUG)
 		void* returnAdr;
 
