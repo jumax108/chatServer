@@ -1,7 +1,6 @@
 #pragma once
 
 #include "packetPointer/headers/packetPointer.h"
-#pragma comment(lib, "lib/packetPointer/packetPointer")
 
 #include "common.h"
 
@@ -18,11 +17,8 @@ public:
 
 private:
 
-	#if defined(PACKET_PTR_LAN_DEBUG)
+	#if defined(PACKET_PTR_NET_DEBUG)
 		void* returnAdr;
-
-		static stPacket* arr[65536];
-		static int arrIndex;
 	#endif
 
 };

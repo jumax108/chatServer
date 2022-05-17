@@ -4,10 +4,13 @@
 #include <vector>
 #include <unordered_map>
 
-#include "netServer/headers/netServer.h"
-#pragma comment(lib, "lib/netServer/netServer")
+#include "sectorCntServer.h"
 
+#include "netServer/headers/netServer.h"
+
+#include "objectFreeList_stJob.h"
 #include "common.h"
+
 
 
 class CChatServer : public CNetServer {
@@ -15,7 +18,20 @@ class CChatServer : public CNetServer {
 public:
 
 	CChatServer();
+	
+	void init();
+
 	static unsigned __stdcall updateFunc(void* args);
+
+	void stop();
+
+	int getJobCnt() {
+		return _jobFreeList.getUsedCount();
+	}
+
+	unsigned __int64 _loginMsgCnt;
+	unsigned __int64 _sectorMoveMsgCnt;
+	unsigned __int64 _chatMsgCnt;
 
 private:
 
@@ -30,14 +46,15 @@ private:
 	virtual void onClientLeave(unsigned __int64 sessionID);
 
 	// 클라이언트에게 데이터를 전송하면 호출됩니다.
-	virtual void onRecv(unsigned __int64 sessionID, CPacketPointer pakcet);
+	virtual void onRecv(unsigned __int64 sessionID, CPacketPtr_Net pakcet);
 	// 클라이언트에게서 데이터를 전달받으면 호출됩니다.
 	virtual void onSend(unsigned __int64 sessionID, int sendSize);
 
 	// 에러 상황에서 호출됩니다.
 	virtual void onError(int errorCode, const wchar_t* errorMsg);
 
-	CLockFreeQueue<stJob> _jobQueue;
+	CObjectFreeList<stJob> _jobFreeList;
+	CLockFreeQueue<stJob*> _jobQueue;
 	HANDLE _jobEvent;
 
 	HANDLE _updateThread;				
@@ -46,4 +63,11 @@ private:
 
 	stSector _sectorArr[SECTOR_SIZE][SECTOR_SIZE];
 
+	bool _stop;
+	HANDLE _stopEvent;
+
+	CSectorCntServer* _sectorCntServer;
+
 };
+
+

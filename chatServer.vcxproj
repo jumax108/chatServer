@@ -145,7 +145,39 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="chatServer.cpp" />
+    <ClCompile Include="headers\sectorCntServer.cpp" />
+    <ClCompile Include="lib\dump\dump.cpp" />
+    <ClCompile Include="lib\lanServer\lanServer.cpp" />
+    <ClCompile Include="lib\lanServer\packetPointer_LanServer.cpp" />
+    <ClCompile Include="lib\log\log.cpp" />
+    <ClCompile Include="lib\netServer\netServer.cpp" />
+    <ClCompile Include="lib\netServer\packetPointer_NetServer.cpp" />
+    <ClCompile Include="lib\packetPointer\packetPointer.cpp" />
+    <ClCompile Include="lib\protocolBuffer\protocolBuffer.cpp" />
+    <ClCompile Include="lib\ringBuffer\ringBuffer.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClInclude Include="headers\sectorCntServer.h" />
+    <ClInclude Include="lib\dump\headers\dump.h" />
+    <ClInclude Include="lib\lanServer\headers\common.h" />
+    <ClInclude Include="lib\lanServer\headers\lanServer.h" />
+    <ClInclude Include="lib\lanServer\headers\packetPointer_LanServer.h" />
+    <ClInclude Include="lib\lockFreeQueue\headers\lockFreeQueue.h" />
+    <ClInclude Include="lib\lockFreeStack\headers\lockFreeStack.h" />
+    <ClInclude Include="lib\log\headers\log.h" />
+    <ClInclude Include="lib\netServer\headers\common.h" />
+    <ClInclude Include="lib\netServer\headers\netServer.h" />
+    <ClInclude Include="lib\netServer\headers\packetPointer_NetServer.h" />
+    <ClInclude Include="lib\objectFreeListTLS\headers\common.h" />
+    <ClInclude Include="lib\objectFreeListTLS\headers\objectFreeListTLS.h" />
+    <ClInclude Include="lib\objectFreeList\headers\common.h" />
+    <ClInclude Include="lib\objectFreeList\headers\objectFreeList.h" />
+    <ClInclude Include="lib\packetPointer\headers\common.h" />
+    <ClInclude Include="lib\packetPointer\headers\packetPointer.h" />
+    <ClInclude Include="lib\protocolBuffer\headers\protocolBuffer.h" />
+    <ClInclude Include="lib\ringBuffer\headers\ringBuffer.h" />
+    <ClInclude Include="objectFreeList_stJob.h">
+      <FileType>CppHeader</FileType>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="headers\chatServer.h" />

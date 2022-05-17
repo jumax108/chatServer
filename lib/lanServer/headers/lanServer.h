@@ -24,30 +24,30 @@
 ///////////////////////////////////////////////////////////////////
 // header
 #include "common.h"
-#include "packetPointer_NetServer.h"
+#include "packetPointer_LanServer.h"
 ///////////////////////////////////////////////////////////////////
 
 
-class CNetServer{
+class CLanServer{
 
 	struct stSession;
 
 public:
 
-	CNetServer();
+	CLanServer();
 
 	// 필요한 메모리를 할당하고 서버를 시작합니다.
 	void start(const wchar_t* serverIP, unsigned short serverPort,
 			int createWorkerThreadNum, int runningWorkerThreadNum,
 			unsigned short maxSessionNum, bool onNagle,
-			unsigned int sendBufferSize, unsigned int recvBufferSize, ULONGLONG defaultTimeOut); 
+			unsigned int sendBufferSize, unsigned int recvBufferSize); 
 	// 모든 메모리를 정리하고 서버를 종료합니다.
 	void stop(); 
 	
 	// sessionID 에 해당하는 연결 해제합니다.
 	void disconnect(unsigned __int64 sessionID); 
 	// sessinoID 에 해당하는 세션에 데이터 전송합니다.
-	bool sendPacket(unsigned __int64 sessionID, CPacketPtr_Net packet);
+	bool sendPacket(unsigned __int64 sessionID, CPacketPtr_Lan packet);
 	 
 	// 클라이언트가 접속을 시도한 상태에서 호출됩니다.
 	// 반환된 값에 따라 연결을 허용합니다.
@@ -60,7 +60,7 @@ public:
 	virtual void onClientLeave(unsigned __int64 sessionID) = 0;
 
 	// 클라이언트에게 데이터를 전송하면 호출됩니다.
-	virtual void onRecv(unsigned __int64 sessionID, CPacketPtr_Net pakcet) = 0;
+	virtual void onRecv(unsigned __int64 sessionID, CPacketPointer pakcet) = 0;
 	// 클라이언트에게서 데이터를 전달받으면 호출됩니다.
 	virtual void onSend(unsigned __int64 sessionID, int sendSize) = 0;
 
@@ -76,21 +76,17 @@ public:
 	inline int getAcceptTPS(){
 		return _acceptTPS;
 	}
-	inline unsigned __int64 getSendBytes() {
-		return _sendBytes;
+	inline unsigned __int64 getAcceptTotal() {
+		return _acceptTotal;
 	}
 	// 현재 접속중인 세션 수를 반환합니다.
 	inline unsigned __int64 getSessionCount(){
 		return _sessionCnt;
 	}
 
-	inline unsigned __int64 getAcceptTotal() {
-		return _acceptTotal;
-	}
-
-	static unsigned __stdcall timeoutFunc(void*);
-
 private:
+
+	static HANDLE _heap;
 
 	stSession* _sessionArr;
 
@@ -109,14 +105,12 @@ private:
 
 	int _sendBufferSize;
 	int _recvBufferSize;
-	unsigned __int64 _sendBytes;
 
 	// logger
 	CLog _log;
 
 	// thread 정리용 event
 	HANDLE _stopEvent;
-	bool _stop;
 
 	HANDLE _tpsCalcThread;
 	int _sendCnt;
@@ -128,11 +122,8 @@ private:
 
 	unsigned __int64 _acceptTotal;
 
-	HANDLE _timeOutThread;
-	ULONGLONG _defaultTimeOut;
-	
 	void sendPost(stSession* session);
-	void recvPost(stSession* session, bool ignoreReleased = false);
+	void recvPost(stSession* session);
 
 	static unsigned __stdcall completionStatusFunc(void* args);
 	static unsigned __stdcall acceptFunc(void* args);
@@ -140,7 +131,7 @@ private:
 
 	void checkCompletePacket(stSession* session, CRingBuffer* recvBuffer);
 
-	void release(unsigned __int64 sessionID);
+	void release(stSession* session);
 
 	struct stSession{
 		
@@ -151,13 +142,13 @@ private:
 		// 상위 2바이트는 세션 인덱스
 		unsigned __int64 _sessionID; // 서버 가동 중에는 고유한 세션 ID
 
-		CLockFreeQueue<CPacketPtr_Net> _sendQueue;
+		CLockFreeQueue<CPacketPointer> _sendQueue;
 		CRingBuffer _recvBuffer;
 		
 		OVERLAPPED _sendOverlapped;
 		OVERLAPPED _recvOverlapped;
 
-		CPacketPtr_Net* _packets;
+		CPacketPointer* _packets;
 
 		SOCKET _sock;
 	
@@ -169,33 +160,12 @@ private:
 		// send를 1회로 제한하기 위한 플래그
 		bool _isSent;
 		
-		// 총 4바이트로 릴리즈 플래그 변화와 ioCnt가 0인지 동시에 체크하기 위함
-		alignas(32) bool _released;
+		// 총 16비트로 릴리즈 플래그 변화와 ioCnt가 0인지 동시에 체크하기 위함
+		alignas(32) unsigned short _ioCnt;
 		private: unsigned char _dummy;
-		public: unsigned short _ioCnt;
+		public: bool _released;
 
 		bool _callDisconnect;
 
-		// ms
-		LONGLONG _timeoutTime;
-
-		// last recv time
-		LONGLONG _lastRecvTime;
-		/*
-		//
-		//bool _willDisconnect;
-		struct stLog {
-
-			unsigned __int64 logCnt;
-			const wchar_t* msg;
-			unsigned int sessionID;
-
-		};
-
-		using LOG_INDEX_TYPE = unsigned short;
-
-		stLog log[65536];
-		unsigned __int64 logCnt;
-		*/
 	};
 };

@@ -5,8 +5,6 @@
 #include "dump/headers/dump.h"
 #include "objectFreeListTLS/headers/ObjectFreeListTLS.h"
 
-#pragma comment(lib, "lib/dump/dump")
-
 static constexpr unsigned __int64 reUseCntMask = 0xFFFFF80000000000;
 static constexpr unsigned __int64 pointerMask  = 0x000007FFFFFFFFFF;
 template <typename T>
@@ -48,26 +46,6 @@ private:
 
 	CObjectFreeListTLS<stNode> _nodeFreeList;
 	
-	struct stLogLine{
-
-		stLogLine(){
-			_logCnt = 0;
-			_code = 0;
-			_top = nullptr;
-			_topNode = nullptr;
-			_newNode = nullptr;
-		}
-		
-		int _logCnt;
-		int _code;
-		void* _top;
-		stNode* _topNode;
-		stNode* _newNode;
-	};
-
-	stLogLine _logLine[65536];
-	int _logCnt;
-
 };
  
 template<typename T>

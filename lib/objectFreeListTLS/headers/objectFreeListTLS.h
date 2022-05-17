@@ -8,16 +8,10 @@
 
 #if defined(OBJECT_FREE_LIST_TLS_DEBUG)
 #include "log\headers\log.h"
-#pragma comment(lib, "lib/log/log")
 #endif
 
-#if defined(OBJECT_FREE_LIST_TLS_DEBUG)
-#define allocObjectTLS() _allocObject(__FILEW__, __LINE__)
-#define freeObjectTLS(ptr) _freeObject(ptr, __FILEW__, __LINE__)
-#else
-#define allocObjectTLS() _allocObject()
-#define freeObjectTLS(ptr) _freeObject(ptr)
-#endif
+#define allocObject() _allocObject(__FILEW__, __LINE__)
+#define freeObject(ptr) _freeObject(ptr, __FILEW__, __LINE__)
 
 template <typename T>
 struct stAllocChunk;
@@ -33,16 +27,8 @@ public:
 	CObjectFreeListTLS(bool runConstructor, bool runDestructor);
 	~CObjectFreeListTLS();
 
-	T* _allocObject(
-#if defined(OBJECT_FREE_LIST_TLS_DEBUG)
-		const wchar_t*, int
-#endif
-	);
-	void _freeObject(T* object
-#if defined(OBJECT_FREE_LIST_TLS_DEBUG)
-		, const wchar_t*, int
-#endif
-	);
+	T* _allocObject(const wchar_t*, int);
+	void _freeObject(T* object, const wchar_t*, int);
 
 	unsigned int getCapacity();
 	unsigned int getUsedCount();
@@ -73,8 +59,6 @@ private:
 
 	int _chunkListIndex;
 	stSimpleList* _chunkListArr[objectFreeListTLS::MAX_THREAD_NUM];
-
-	HANDLE _heap;
 
 	CLog log;
 #endif
@@ -109,13 +93,13 @@ CObjectFreeListTLS<T>::CObjectFreeListTLS(bool runConstructor, bool runDestructo
 
 #if defined(OBJECT_FREE_LIST_TLS_DEBUG)
 
-	_heap = HeapCreate(0, 0, 0);
-
 	_chunkListIndex = 0;
 
 	for (int chunkListCnt = 0; chunkListCnt < objectFreeListTLS::MAX_THREAD_NUM; ++chunkListCnt) {
 		// 청크 리스트를 tls에서 획득하고 저장하는데 계속 null이면 index를 계속 증가시킬 것이기 때문에 더미 노드를 넣어줌
-		_chunkListArr[chunkListCnt] = (stSimpleList*)HeapAlloc(_heap, HEAP_ZERO_MEMORY, sizeof(stSimpleList));
+		_chunkListArr[chunkListCnt] = (stSimpleList*)malloc(sizeof(stSimpleList));
+		ZeroMemory(_chunkListArr[chunkListCnt], sizeof(stSimpleList));
+			//(stSimpleList*)HeapAlloc(_heap, HEAP_ZERO_MEMORY, sizeof(stSimpleList));
 	}
 
 	log.setDirectory(L"objectFreeListTLS_Log");
@@ -181,7 +165,6 @@ CObjectFreeListTLS<T>::~CObjectFreeListTLS() {
 	log(L"memoryLeak.txt", LOG_GROUP::LOG_DEBUG, L"───────────────────────────────────────────");
 
 	TlsFree(_chunkListTlsIdx);
-	HeapDestroy(_heap);
 
 #endif
 
@@ -190,12 +173,7 @@ CObjectFreeListTLS<T>::~CObjectFreeListTLS() {
 }
 
 template <typename T>
-typename T* CObjectFreeListTLS<T>::_allocObject(
-#if defined(OBJECT_FREE_LIST_TLS_DEBUG)
-	const wchar_t* fileName,
-	int line
-#endif
-) {
+typename T* CObjectFreeListTLS<T>::_allocObject(const wchar_t* fileName,int line) {
 
 #if defined(OBJECT_FREE_LIST_TLS_DEBUG)
 	///////////////////////////////////////////////////////////////////////
@@ -219,13 +197,15 @@ typename T* CObjectFreeListTLS<T>::_allocObject(
 		chunk->init();
 		TlsSetValue(_allocChunkTlsIdx, chunk);
 
-#if defined(OBJECT_FREE_LIST_TLS_DEBUG)
-		stSimpleList* node = (stSimpleList*)HeapAlloc(_heap, HEAP_ZERO_MEMORY, sizeof(stSimpleList));
-		node->_chunk = chunk;
-		node->_next = list;
-		list = node;
-		_chunkListArr[chunkListIndex] = node;
-#endif
+		#if defined(OBJECT_FREE_LIST_TLS_DEBUG)
+			stSimpleList* node = (stSimpleList*)malloc(sizeof(stSimpleList));
+			ZeroMemory(node, sizeof(stSimpleList));
+
+			node->_chunk = chunk;
+			node->_next = list;
+			list = node;
+			_chunkListArr[chunkListIndex] = node;
+		#endif
 
 	}
 	///////////////////////////////////////////////////////////////////////
@@ -257,7 +237,8 @@ typename T* CObjectFreeListTLS<T>::_allocObject(
 		TlsSetValue(_allocChunkTlsIdx, chunk);
 
 #if defined(OBJECT_FREE_LIST_TLS_DEBUG)
-		stSimpleList* node = (stSimpleList*)HeapAlloc(_heap, HEAP_ZERO_MEMORY, sizeof(stSimpleList));
+		stSimpleList* node = (stSimpleList*)malloc(sizeof(stSimpleList));
+		ZeroMemory(node, sizeof(stSimpleList));
 		node->_chunk = chunk;
 		node->_next = list;
 		_chunkListArr[chunkListIndex] = node;
@@ -271,12 +252,7 @@ typename T* CObjectFreeListTLS<T>::_allocObject(
 }
 
 template <typename T>
-void CObjectFreeListTLS<T>::_freeObject(T* object
-#if defined(OBJECT_FREE_LIST_TLS_DEBUG)
-	, const wchar_t* fileName,
-	int line
-#endif
-) {
+void CObjectFreeListTLS<T>::_freeObject(T* object, const wchar_t* fileName,int line) {
 
 	///////////////////////////////////////////////////////////////////////
 	// 할당했던 노드 획득

@@ -34,8 +34,22 @@ struct stUser {
 	unsigned __int64 _sessionID;
 	stSector* _sector;
 	__int64 _accountNo;
-	WCHAR _id[ID_LEN];
+	WCHAR _id[ID_LEN]; 
 	WCHAR _nickName[NICKNAME_LEN];
+	bool _willDisconnect;
+	bool _login;
+	/*
+	struct stLog {
+		unsigned __int64 _logCnt;
+		const wchar_t* _msg;
+		int msgLen;
+		char packet[100];
+	};
+
+	unsigned __int64 logCnt = 0;
+	using LOG_INDEX_TYPE = unsigned char;
+	stLog log[256];
+	*/
 };
 
 struct stSector {
@@ -56,21 +70,22 @@ struct RES_LOGIN {
 	WORD _type;
 	BYTE _status;
 	__int64 _accountNo;
-};
+}; // 2 + 1 + 8 = 11
 
 struct REQ_MOVE_SECTOR {
 	WORD _type;
 	__int64 _accountNo;
 	WORD _sectorX;
 	WORD _sectorY;
-};
+};// 6 +8 = 14
+
 
 struct RES_MOVE_SECTOR {
 	WORD _type;
 	__int64 _accountNo;
 	WORD _sectorX;
 	WORD _sectorY;
-};
+}; // 14
 
 struct REQ_CHAT{
 	WORD _type;
@@ -85,4 +100,12 @@ struct RES_CHAT {
 	WCHAR nickName[NICKNAME_LEN];
 	WORD _msgLen;
 	//WCHAR msg[msgLen / 2]
+}; 
+
+struct SECTOR_USER_NUM{
+
+	WORD _y;
+	WORD _x;
+	int _num;
+
 };
